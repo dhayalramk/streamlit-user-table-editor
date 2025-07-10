@@ -11,7 +11,7 @@ AWS_ACCESS_KEY_ID = st.secrets["AWS_ACCESS_KEY_ID"]
 AWS_SECRET_ACCESS_KEY = st.secrets["AWS_SECRET_ACCESS_KEY"]
 
 BROKER_OPTIONS = ["ANGEL"]
-APP_PASSWORD = "Deepa123!"
+APP_PASSWORD = st.secrets["APP_PASSWORD"]
 
 # ---------- AUTH ----------
 if "authenticated" not in st.session_state:
