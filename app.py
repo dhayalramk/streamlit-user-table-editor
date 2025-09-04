@@ -2,6 +2,7 @@ import streamlit as st
 import boto3
 import json
 import pandas as pd
+import requests
 
 # ---------- CONFIG ----------
 BUCKET = st.secrets["BUCKET"]
@@ -12,6 +13,18 @@ AWS_SECRET_ACCESS_KEY = st.secrets["AWS_SECRET_ACCESS_KEY"]
 
 BROKER_OPTIONS = ["ANGEL"]
 APP_PASSWORD = st.secrets["APP_PASSWORD"]
+
+TELEGRAM_BOT_TOKEN = st.secrets["TELEGRAM_BOT_TOKEN"]
+TELEGRAM_CHAT_ID = st.secrets["TELEGRAM_CHAT_ID"]
+
+def send_telegram_message(message: str):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
+    try:
+        r = requests.post(url, data=payload)
+        r.raise_for_status()
+    except Exception as e:
+        st.error(f"⚠️ Failed to send Telegram message: {e}")
 
 # ---------- AUTH ----------
 if "authenticated" not in st.session_state:
@@ -43,10 +56,20 @@ def load_users():
     obj = s3.get_object(Bucket=BUCKET, Key=KEY)
     return json.loads(obj['Body'].read())
 
-def save_users(users):
+def save_users_old(users):
     s3 = get_s3_client()
     s3.put_object(Bucket=BUCKET, Key=KEY, Body=json.dumps(users, indent=2))
     st.success("✅ Changes saved to S3")
+
+def save_users(users):
+    s3 = get_s3_client()
+    try:
+        s3.put_object(Bucket=BUCKET, Key=KEY, Body=json.dumps(users, indent=2))
+        st.success("✅ Changes saved to S3")
+        send_telegram_message("✅ User Manager: Changes saved to S3 successfully.")
+    except Exception as e:
+        st.error(f"❌ Failed to save changes: {e}")
+        send_telegram_message(f"❌ User Manager: Failed to save changes.\nError: {e}")
 
 # ---------- MAIN UI ----------
 st.set_page_config(page_title="User Manager", layout="wide")
