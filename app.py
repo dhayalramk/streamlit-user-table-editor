@@ -56,11 +56,6 @@ def load_users():
     obj = s3.get_object(Bucket=BUCKET, Key=KEY)
     return json.loads(obj['Body'].read())
 
-def save_users_old(users):
-    s3 = get_s3_client()
-    s3.put_object(Bucket=BUCKET, Key=KEY, Body=json.dumps(users, indent=2))
-    st.success("✅ Changes saved to S3")
-
 def save_users(users):
     s3 = get_s3_client()
     try:
@@ -128,6 +123,30 @@ if st.button("💾 Save All Changes"):
 
     save_users(df.to_dict(orient="records"))
     st.success("✅ All changes saved successfully.")
+
+# ---------- DELETE USERS ----------
+st.markdown("### 🗑️ Delete Users")
+
+delete_df = st.data_editor(
+    filtered_df.assign(delete=False),
+    use_container_width=True,
+    column_config={
+        "delete": st.column_config.CheckboxColumn("Delete", default=False),
+    },
+    hide_index=True,
+    num_rows="fixed"
+)
+
+if st.button("🗑️ Delete Selected Users"):
+    to_delete = delete_df[delete_df["delete"] == True]["client_id"].tolist()
+    if not to_delete:
+        st.warning("⚠️ No users selected for deletion.")
+    else:
+        df = df[~df["client_id"].isin(to_delete)].reset_index(drop=True)
+        save_users(df.to_dict(orient="records"))
+        st.success(f"✅ Deleted {len(to_delete)} user(s).")
+        send_telegram_message(f"🗑️ User Manager: Deleted {len(to_delete)} user(s).")
+        st.rerun()
 
 # ---------- ADD USER ----------
 st.markdown("---")
